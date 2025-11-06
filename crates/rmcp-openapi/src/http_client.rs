@@ -1,22 +1,24 @@
 use reqwest::header::{self, HeaderMap, HeaderValue};
-use reqwest::{Client, Method, RequestBuilder, StatusCode};
+use reqwest::{Client, Method, StatusCode};
 use serde_json::Value;
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Duration;
+use reqwest_middleware::{ClientBuilder, ClientWithMiddleware, RequestBuilder};
 use tracing::{debug, error, info, info_span};
 use url::Url;
 
 use crate::error::{
     Error, NetworkErrorCategory, ToolCallError, ToolCallExecutionError, ToolCallValidationError,
 };
+use crate::middleware::XrayInjectMiddleware;
 use crate::tool::ToolMetadata;
 use crate::tool_generator::{ExtractedParameters, QueryParameter, ToolGenerator};
 
 /// HTTP client for executing `OpenAPI` requests
 #[derive(Clone)]
 pub struct HttpClient {
-    client: Arc<Client>,
+    client: Arc<ClientWithMiddleware>,
     base_url: Option<Url>,
     default_headers: HeaderMap,
 }
@@ -40,6 +42,8 @@ impl HttpClient {
             .build()
             .expect("Failed to create HTTP client");
 
+        let client = ClientBuilder::new(client).with(XrayInjectMiddleware).build();
+
         Self {
             client: Arc::new(client),
             base_url: None,
@@ -60,6 +64,10 @@ impl HttpClient {
             .timeout(Duration::from_secs(timeout_seconds))
             .build()
             .expect("Failed to create HTTP client");
+
+        let client = ClientBuilder::new(client)
+            .with(XrayInjectMiddleware)
+            .build();
 
         Self {
             client: Arc::new(client),

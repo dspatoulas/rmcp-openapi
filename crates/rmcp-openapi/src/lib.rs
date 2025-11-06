@@ -7,6 +7,7 @@ pub mod spec;
 pub mod tool;
 pub mod tool_generator;
 pub mod tool_registry;
+mod middleware;
 
 pub use config::{Authorization, AuthorizationMode};
 pub use error::{CliError, Error, ToolCallError};
